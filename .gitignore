@@ -1,0 +1,8 @@
+﻿shared_venv/
+__pycache__/
+*.pyc
+*.log
+.ipynb_checkpoints/
+.pytest_cache/
+dist/
+*.egg-info/

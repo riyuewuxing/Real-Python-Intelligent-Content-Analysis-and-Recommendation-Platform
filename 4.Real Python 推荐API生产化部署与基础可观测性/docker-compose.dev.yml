@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  # API后端服务（开发模式）
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.simple
+    container_name: real-python-api-dev
+    ports:
+      - "8000:8000"
+    volumes:
+      # 挂载代码目录，支持热重载
+      - ./api:/app/api
+      - ../shared_data:/shared_data:ro
+    environment:
+      - PYTHONPATH=/app
+      - ENVIRONMENT=development
+    restart: unless-stopped
+    networks:
+      - real-python-dev-network
+    command: ["python", "-m", "uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+  # Streamlit前端服务（开发模式）
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: real-python-frontend-dev
+    ports:
+      - "8501:8501"
+    volumes:
+      # 挂载前端代码，支持热重载
+      - ./frontend/app.py:/app/app.py
+      - ./real_python_sentiment_analysis.csv:/app/real_python_sentiment_analysis.csv:ro
+    environment:
+      # 使用localhost进行开发，可以直接访问宿主机上的服务
+      - API_BASE_URL=http://localhost:8000
+    depends_on:
+      - api
+    restart: unless-stopped
+    networks:
+      - real-python-dev-network
+
+networks:
+  real-python-dev-network:
+    driver: bridge
+    name: real-python-dev-network 

@@ -1,0 +1,106 @@
+groups:
+  - name: real_python_api_alerts
+    rules:
+      # API 服务不可用
+      - alert: APIServiceDown
+        expr: up{job="real-python-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Real Python API 服务不可用"
+          description: "API 服务已停止响应超过 1 分钟"
+
+      # API 响应时间过长
+      - alert: APIHighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="real-python-api"}[5m])) > 2
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API 响应时间过长"
+          description: "95% 的请求响应时间超过 2 秒"
+
+      # API 错误率过高
+      - alert: APIHighErrorRate
+        expr: rate(http_requests_total{job="real-python-api",status=~"5.."}[5m]) / rate(http_requests_total{job="real-python-api"}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "API 错误率过高"
+          description: "API 5xx 错误率超过 10%"
+
+      # 内存使用率过高
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "系统内存使用率过高"
+          description: "内存使用率超过 85%"
+
+      # CPU 使用率过高
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "系统 CPU 使用率过高"
+          description: "CPU 使用率超过 85%"
+
+      # 磁盘空间不足
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes{fstype!="tmpfs"}) * 100 < 15
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "磁盘空间不足"
+          description: "可用磁盘空间少于 15%"
+
+      # 容器重启频率过高
+      - alert: ContainerRestartTooOften
+        expr: increase(container_start_time_seconds[1h]) > 3
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "容器重启频率过高"
+          description: "容器在过去 1 小时内重启超过 3 次"
+
+  - name: frontend_alerts
+    rules:
+      # 前端服务不可用
+      - alert: FrontendServiceDown
+        expr: probe_success{job="blackbox",instance="http://frontend:8501/_stcore/health"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Streamlit 前端服务不可用"
+          description: "前端服务健康检查失败超过 1 分钟"
+
+  - name: nginx_alerts
+    rules:
+      # Nginx 服务不可用
+      - alert: NginxServiceDown
+        expr: probe_success{job="blackbox",instance="http://nginx/nginx-health"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Nginx 服务不可用"
+          description: "Nginx 服务健康检查失败超过 1 分钟"
+
+      # Nginx 连接数过高
+      - alert: NginxHighConnections
+        expr: nginx_connections_active > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Nginx 活跃连接数过高"
+          description: "活跃连接数超过 100" 

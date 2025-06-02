@@ -1,0 +1,8 @@
+venv/
+__pycache__/
+.git/
+.gitignore
+.DS_Store
+*.pyc
+*.log
+# *.csv # 如果 CSV 是在构建后下载或通过卷挂载的，则排除。本项目中 CSV 是 COPY 到容器的，因此不要排除。 
