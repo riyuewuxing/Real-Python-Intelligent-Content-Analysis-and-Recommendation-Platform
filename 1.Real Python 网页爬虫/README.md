@@ -1,4 +1,4 @@
-# Real Python 博客文章情感分析器 (Real Python Blog Article Sentiment Analyzer)
+# Real Python 博客文章分析器 (Real Python Blog Article Sentiment Analyzer)
 
 版本： 1.0
 
