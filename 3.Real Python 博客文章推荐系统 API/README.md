@@ -2,23 +2,23 @@
 
 ## 项目简介
 
-本项目的核心目的是将 Real Python 博客文章数据，转化为一个能够提供个性化内容推荐的后端服务。这是一个基于 FastAPI 构建的 RESTful API，采用基于内容的推荐算法 (Content-Based Recommendation) 和 TF-IDF 文本特征提取技术，为用户提供与指定文章内容相似的其他文章列表。
+此项目的核心是将 Real Python 博客文章数据，转化为一个能够提供个性化内容推荐的后端服务。这是一个基于 FastAPI 构建的 RESTful API，采用基于内容的推荐算法 (Content-Based Recommendation) 和 TF-IDF 文本特征提取技术，为用户提供与指定文章内容相似的其他文章列表。
 
 ## 技术栈
 
 - Python 3.8+
-- Pandas: 数据加载、处理与操作。
-- NumPy: 高效数值计算。
-- scikit-learn: TF-IDF 向量化和余弦相似度计算。
-- NLTK: 文本预处理（停用词去除、词形还原）。
-- SpaCy: 文本预处理（词形还原、分词）。
-- FastAPI: 构建 RESTful API。
-- Pydantic: API 数据模型验证。
-- Uvicorn: ASGI 服务器，用于运行 FastAPI 应用。
+- Pandas: 用于数据加载、处理与操作。
+- NumPy: 用于高效数值计算。
+- scikit-learn: 用于TF-IDF 向量化和余弦相似度计算。
+- NLTK: 用于文本预处理（停用词去除、词形还原）。
+- SpaCy: 用于文本预处理（词形还原、分词）。
+- FastAPI: 用于构建 RESTful API。
+- Pydantic: 用于API 数据模型验证。
+- Uvicorn: 用作ASGI 服务器，用于运行 FastAPI 应用。
 
 ## 数据要求
 
-- **数据源**: `real_python_sentiment_analysis.csv` 文件 (预期由之前的爬虫项目生成，并重命名)。
+- **数据源**: `real_python_courses_analysis.csv` 文件 (之前的爬虫项目生成)。
 - **关键数据列**: 必须包含以下列 (或可以被脚本正确解析的类似列名，脚本内部会将它们映射为 `title`, `url`, `content`):
     - 文章标题 (例如: `Title`)
     - 文章URL (例如: `URL`)
@@ -31,8 +31,8 @@
 real_python_recommender_api/
 ├── api/
 │   └── main.py       # FastAPI 应用主文件，包含所有API逻辑和模型加载
-├── utils/            # (可选) 辅助模块，例如独立的文本处理器或推荐器逻辑
-├── real_python_sentiment_analysis.csv # 数据文件
+├── utils/            # (可选) 可能添加的辅助模块，例如独立的文本处理器或推荐器逻辑
+├── real_python_courses_analysis.csv # 数据文件
 ├── requirements.txt  # 项目依赖
 └── README.md         # 项目说明文档
 ```
@@ -132,7 +132,7 @@ real_python_recommender_api/
     python -m spacy download en_core_web_sm
     python -m nltk.downloader stopwords wordnet averaged_perceptron_tagger punkt # punkt可能也需要
     ```
-4.  **准备数据文件**: 将包含文章数据的 CSV 文件 (例如 `real_python_courses_analysis.csv`) 复制到项目根目录，并确保其名称为 `real_python_sentiment_analysis.csv`，或者修改 `api/main.py` 中 `pd.read_csv()` 的文件名。
+4.  **准备数据文件**: 将包含文章数据的 CSV 文件 (例如 `real_python_courses_analysis.csv`) 复制到项目根目录，并确保其名称为 `real_python_courses_analysis.csv`，或者修改 `api/main.py` 中 `pd.read_csv()` 的文件名。
 5.  **运行 FastAPI 应用**: 在项目根目录下运行以下命令：
     ```bash
     uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
@@ -198,49 +198,58 @@ real_python_recommender_api/
         response_invalid = requests.post(api_url, json=payload_invalid)
         print(f"\n测试无效ID ({payload_invalid['article_id']}) 状态码: {response_invalid.status_code}")
         print(json.dumps(response_invalid.json(), indent=2, ensure_ascii=False))
-    except requests.exceptions.RequestException as e:
-        print(f"请求失败: {e}")
-
-    # 测试健康检查
-    health_url = "http://127.0.0.1:8000/health"
-    try:
-        health_response = requests.get(health_url)
-        health_response.raise_for_status()
-        print(f"\n健康检查结果 ({health_url}):")
-        print(json.dumps(health_response.json(), indent=2, ensure_ascii=False))
-    except requests.exceptions.RequestException as e:
-        print(f"健康检查失败: {e}")
+    except json.JSONDecodeError:
+        print(f"错误响应 (非JSON): {response_invalid.text}")
     ```
 
-## 核心亮点与实现细节
+## 核心算法说明
 
-- **高效数据加载与预处理**: 应用启动时一次性加载和处理所有数据及模型，避免了每次请求的重复计算。
-- **文本特征提取**: 使用 TF-IDF 将文本内容转化为数值向量，便于计算相似度。
-- **内容相似度计算**: 采用余弦相似度来衡量文章之间的内容相似性。
-- **RESTful API**: 基于 FastAPI 构建，自动生成 OpenAPI (Swagger & ReDoc) 文档。
-- **数据验证**: 使用 Pydantic 模型进行请求和响应数据的自动验证和序列化。
-- **NLP 处理**: 集成了 SpaCy 和 NLTK 进行文本的词形还原和停用词去除，以提高特征质量。
-- **配置化与模块化**: 代码结构清晰，易于理解和扩展。
-- **错误处理**: 对常见的错误情况（如文件未找到、文章ID无效）进行了处理，并返回有意义的错误信息。
-- **异步处理**: FastAPI 默认支持异步请求处理，为未来扩展高并发场景奠定基础。
+### 基于内容的推荐算法
+推荐系统采用以下步骤：
 
-## 未来展望
+1. **文本预处理**: 对文章内容进行清洗、分词、去停用词等处理
+2. **特征提取**: 使用TF-IDF向量化将文本转换为数值特征
+3. **相似度计算**: 使用余弦相似度计算文章间的相似性
+4. **推荐生成**: 返回与目标文章最相似的N篇文章
 
-- **更复杂的推荐算法**: 探索协同过滤、混合推荐模型或基于深度学习的推荐算法 (如使用 Sentence Transformers 获取更优的文本嵌入)。
-- **用户行为数据集成**: 引入用户阅读历史、评分等行为数据，实现更个性化的推荐。
-- **持久化存储**: 将预计算的相似度矩阵或推荐结果存入数据库 (如 Redis, PostgreSQL) 以加速查询，特别是对于大规模数据集。
-- **近似最近邻 (ANN) 搜索**: 对于海量文章，使用 FAISS, Annoy 等库实现 ANN 搜索，以在可接受的精度损失下大幅提升大规模相似度查询效率。
-- **配置管理**: 将文件路径、模型参数等配置移至环境变量或配置文件 (`.env`)。
-- **单元测试与集成测试**: 为核心逻辑和 API 端点编写测试用例。
-- **Docker 容器化**: 将应用打包成 Docker 镜像，方便部署和管理。
-- **CI/CD 流水线**: 建立自动化构建、测试和部署流程。
-- **更精细的文本预处理**: 根据数据特点调整预处理步骤，例如处理特定领域的术语、命名实体识别等。
-- **API 认证与授权**: 为 API 添加安全机制。
+### 算法优势
+- **冷启动友好**: 算法不依赖用户行为数据
+- **可解释性强**: 可以明确知道推荐的原因（内容相似）
+- **实时性好**: 算法计算速度快，适合实时推荐
 
-## 贡献
+## 性能说明
 
-欢迎提出问题、报告BUG或贡献代码。
+- **启动时间**: 首次启动时需要加载和处理数据，可能需要几十秒
+- **响应时间**: 数据加载完成后，单次推荐请求通常在100ms内完成
+- **内存使用**: 系统内存使用量取决于文章数量，通常在几百MB到几GB之间
+
+## 故障排除
+
+### 常见问题
+
+1. **依赖安装失败**
+   - 确保Python版本为3.8+
+   - 建议使用虚拟环境避免依赖冲突
+
+2. **数据文件找不到**
+   - 确保CSV文件路径正确
+   - 检查文件名是否匹配代码中的设置
+
+3. **服务启动失败**
+   - 检查端口8000是否被占用
+   - 查看错误日志确定具体问题
+
+## 未来改进计划
+
+计划在未来版本中添加：
+
+- **混合推荐算法**: 结合协同过滤和内容推荐
+- **多语言支持**: 支持中文等其他语言的文章推荐
+- **个性化推荐**: 基于用户历史行为的个性化推荐
+- **推荐解释**: 提供推荐理由和置信度
+- **缓存优化**: 添加Redis缓存提高响应速度
+- **A/B测试**: 支持不同推荐算法的效果对比
 
 ---
 
-祝您使用愉快！ 
+**注意**: 这是一个学习项目，主要用于展示推荐系统的基本原理和实现方法。在生产环境中使用时，建议进行更多的性能优化和安全考虑。 
